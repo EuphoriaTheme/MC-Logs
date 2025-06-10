@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+// added by BZ: Collapsible log section types
+const LogSectionNames = ["ERROR", "WARN", "INFO", "OTHER"] as const;
+type LogSection = typeof LogSectionNames[number];
+
 import { ServerContext } from '@/state/server';
 import { Actions, useStoreActions } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
@@ -27,6 +31,17 @@ interface InsightsData {
 }
 
 const LogsPage: React.FC = () => {
+    // added by BZ: Collapsed state for log sections
+    const [collapsed, setCollapsed] = useState<Record<LogSection, boolean>>({
+        ERROR: false,
+        WARN: false,
+        INFO: true,
+        OTHER: true,
+    });
+    // added by BZ: Toggle for grouped/collapsibled
+    const [showOriginal, setShowOriginal] = useState(false);
+
+
     const [logs, setLogs] = useState<string[]>([]);
     const [mclogsUrls, setMclogsUrls] = useState<McLogEntry[]>([]);
     const [loading, setLoading] = useState(false);
@@ -34,9 +49,6 @@ const LogsPage: React.FC = () => {
     const [insightsData, setInsightsData] = useState<InsightsData | null>(null);
     const [historyVisible, setHistoryVisible] = useState(false);
     const [showModal, setShowModal] = useState(false);
-
-    // Directory of the feedback
-    const dir_feedback = "%%__NONCE__%%";
 
     const [currentLogsPage, setCurrentLogsPage] = useState<number>(1);
     const [currentHistoryPage, setCurrentHistoryPage] = useState<number>(1);
@@ -518,23 +530,71 @@ const LogsPage: React.FC = () => {
                         </button>
                     </div>
                     <h4 css={tw`text-base text-white mb-2`}>Raw Log</h4>
+                    {/* added by BZ: Toggle for grouped/collapsibled */}
+                    <button
+                        css={tw`mb-4 px-2 py-1 rounded bg-neutral-800 text-neutral-200 text-xs hover:bg-neutral-700`}
+                        onClick={() => setShowOriginal(v => !v)}
+                        type="button"
+                    >
+                        {showOriginal ? 'Show Grouped/Collapsible View' : 'Show Original Log Order'}
+                    </button>
                     <div css={tw`text-sm whitespace-pre-wrap mb-4`}>
-                        {selectedLogData.split('\n').map((line, index) => {
-                            let lineStyle = tw`text-white`; // Default style
-                            if (line.includes('WARN')) {
-                                lineStyle = tw`text-[#FF8C00]`; // Orange for WARN
-                            } else if (line.includes('INFO')) {
-                                lineStyle = tw`text-[#FFFF99]`; // Yellow for INFO
-                            } else if (line.includes('ERROR')) {
-                                lineStyle = tw`text-[#F62451]`; // Custom red for errors
-                            }
-
-                            return (
-                                <p css={lineStyle} key={index}>
-                                    {line}
-                                </p>
-                            );
-                        })}
+                        {showOriginal ? (
+                            // Original log order, color-coded only
+                            selectedLogData.split('\n').map((line, index) => {
+                                let lineStyle = tw`text-white`;
+                                if (line.includes('WARN')) lineStyle = tw`text-[#FF8C00]`;
+                                else if (line.includes('INFO')) lineStyle = tw`text-[#FFFF99]`;
+                                else if (line.includes('ERROR')) lineStyle = tw`text-[#F62451]`;
+                                return (
+                                    <p css={lineStyle} key={index}>{line}</p>
+                                );
+                            })
+                        ) : (
+                            // Grouped/collapsibled view
+                            (() => {
+                                const grouped: Record<LogSection, string[]> = {
+                                    ERROR: [],
+                                    WARN: [],
+                                    INFO: [],
+                                    OTHER: [],
+                                };
+                                selectedLogData.split('\n').forEach(line => {
+                                    if (line.includes('ERROR')) grouped.ERROR.push(line);
+                                    else if (line.includes('WARN')) grouped.WARN.push(line);
+                                    else if (line.includes('INFO')) grouped.INFO.push(line);
+                                    else grouped.OTHER.push(line);
+                                });
+                                const lineStyle: Record<LogSection, any> = {
+                                    ERROR: tw`text-[#F62451]`,
+                                    WARN: tw`text-[#FF8C00]`,
+                                    INFO: tw`text-[#FFFF99]`,
+                                    OTHER: tw`text-white`,
+                                };
+                                return LogSectionNames.map(type => (
+                                    grouped[type].length > 0 && (
+                                        <div key={type} css={tw`mb-2`}>
+                                            <button
+                                                css={tw`mb-1 px-2 py-1 rounded bg-neutral-800 text-neutral-200 text-xs hover:bg-neutral-700`}
+                                                onClick={() => setCollapsed(c => ({ ...c, [type]: !c[type] }))}
+                                                type="button"
+                                            >
+                                                {collapsed[type] ? `Show` : `Hide`} {grouped[type].length} {type} line{grouped[type].length !== 1 ? 's' : ''}
+                                            </button>
+                                            {!collapsed[type] && (
+                                                <div>
+                                                    {grouped[type].map((line, idx) => (
+                                                        <p css={lineStyle[type]} key={idx}>
+                                                            {line}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                ));
+                            })()
+                        )}
                     </div>
                 </div>
             )}
