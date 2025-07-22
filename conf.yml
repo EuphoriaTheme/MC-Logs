@@ -3,7 +3,7 @@ info:
   identifier: "mclogs"
   description: "Addon that allows users to Utilise the MCLOGS API"
   flags: ""
-  version: "v1.4"
+  version: "1.5"
   target: "beta-2024-12"
   author: "Euphoria Development"
   icon: "mclogs_icon.jpg"

@@ -52,7 +52,7 @@ const LogsPage: React.FC = () => {
 
     const [currentLogsPage, setCurrentLogsPage] = useState<number>(1);
     const [currentHistoryPage, setCurrentHistoryPage] = useState<number>(1);
-    const logsPerPage = 5; 
+    const [logsPerPage, setLogsPerPage] = useState<number>(5);
     const maxPageButtons = 5; 
 
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest'); // Sorting order for MCLogs
@@ -88,6 +88,12 @@ const LogsPage: React.FC = () => {
 
     const handleHistoryPageChange = (pageNumber: number) => {
         setCurrentHistoryPage(pageNumber);
+    };
+
+    const handleLogsPerPageChange = (newPerPage: number) => {
+        setLogsPerPage(newPerPage);
+        setCurrentLogsPage(1); // Reset to first page when changing page size
+        setCurrentHistoryPage(1); // Reset history page too
     };
 
     const saveToLocalStorage = (data: McLogEntry) => {
@@ -344,14 +350,26 @@ const LogsPage: React.FC = () => {
             <div css={tw`p-6 bg-gray-600 rounded`} className="ContentBox___StyledDiv-sc-mjlt6f-2 iGOcRf">
                 <div css={tw`flex items-center justify-between mb-2`}>
                     <h3 css={tw`text-lg text-neutral-100`}>Available Logs</h3>
-                    <select
-                        css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
-                        value={logSortOrder}
-                        onChange={(e) => setLogSortOrder(e.target.value as 'newest' | 'oldest')}
-                    >
-                        <option value="newest">Newest to Oldest</option>
-                        <option value="oldest">Oldest to Newest</option>
-                    </select>
+                    <div css={tw`flex items-center space-x-4`}>
+                        <select
+                            css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
+                            value={logsPerPage}
+                            onChange={(e) => handleLogsPerPageChange(Number(e.target.value))}
+                        >
+                            <option value={5}>5 per page</option>
+                            <option value={10}>10 per page</option>
+                            <option value={15}>15 per page</option>
+                            <option value={20}>20 per page</option>
+                        </select>
+                        <select
+                            css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
+                            value={logSortOrder}
+                            onChange={(e) => setLogSortOrder(e.target.value as 'newest' | 'oldest')}
+                        >
+                            <option value="newest">Newest to Oldest</option>
+                            <option value="oldest">Oldest to Newest</option>
+                        </select>
+                    </div>
                 </div>
                 {!sortedLogs.length ? (
                     <p css={tw`text-sm text-neutral-300`}>
@@ -395,6 +413,16 @@ const LogsPage: React.FC = () => {
                                 >
                                     Delete All History
                                 </button>
+                                <select
+                                    css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
+                                    value={logsPerPage}
+                                    onChange={(e) => handleLogsPerPageChange(Number(e.target.value))}
+                                >
+                                    <option value={5}>5 per page</option>
+                                    <option value={10}>10 per page</option>
+                                    <option value={15}>15 per page</option>
+                                    <option value={20}>20 per page</option>
+                                </select>
                                 {/* Sort Order Dropdown */}
                                 <select
                                     css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
