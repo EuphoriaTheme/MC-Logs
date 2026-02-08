@@ -13,7 +13,7 @@ Uploading sends the full log text to a third-party service (mclo.gs). Logs can c
 
 ## Compatibility
 - Blueprint Framework on Pterodactyl Panel
-- Target: `beta-2024-12` (see `conf.yml`)
+- Target: `beta-2026-01` (see `conf.yml`)
 
 ## Installation / Development Guides
 Follow the official Blueprint guides for installing addons and developing components:
