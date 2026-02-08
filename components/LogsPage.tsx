@@ -1,8 +1,4 @@
 import React, { useEffect, useState } from 'react';
-// added by BZ: Collapsible log section types
-const LogSectionNames = ["ERROR", "WARN", "INFO", "OTHER"] as const;
-type LogSection = typeof LogSectionNames[number];
-
 import { ServerContext } from '@/state/server';
 import { Actions, useStoreActions } from 'easy-peasy';
 import { ApplicationStore } from '@/state';
@@ -13,10 +9,14 @@ import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import tw from 'twin.macro';
 import axios from 'axios';
 
+const LogSectionNames = ['ERROR', 'WARN', 'INFO', 'OTHER'] as const;
+type LogSection = (typeof LogSectionNames)[number];
+
 interface McLogEntry {
     id: string;
     url: string;
-    uploadedAt: string; // ISO string for the upload timestamp
+    /** ISO timestamp for when the upload was created (client-side). */
+    uploadedAt: string;
 }
 
 interface InsightsData {
@@ -30,15 +30,22 @@ interface InsightsData {
     };
 }
 
+/**
+ * Blueprint server route page for the MC Logs addon.
+ *
+ * - Lists `/logs` using the Pterodactyl client API.
+ * - Uploads selected logs to mclo.gs and stores returned ids/urls in browser localStorage.
+ * - Fetches and renders mclo.gs `raw` and `insights` data for a selected upload.
+ *
+ * Privacy: uploading sends the full log contents to a third-party service.
+ */
 const LogsPage: React.FC = () => {
-    // added by BZ: Collapsed state for log sections
     const [collapsed, setCollapsed] = useState<Record<LogSection, boolean>>({
         ERROR: false,
         WARN: false,
         INFO: true,
         OTHER: true,
     });
-    // added by BZ: Toggle for grouped/collapsibled
     const [showOriginal, setShowOriginal] = useState(false);
 
 
@@ -53,10 +60,10 @@ const LogsPage: React.FC = () => {
     const [currentLogsPage, setCurrentLogsPage] = useState<number>(1);
     const [currentHistoryPage, setCurrentHistoryPage] = useState<number>(1);
     const [logsPerPage, setLogsPerPage] = useState<number>(5);
-    const maxPageButtons = 5; 
+    const maxPageButtons = 5;
 
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest'); // Sorting order for MCLogs
-    const [logSortOrder, setLogSortOrder] = useState<'newest' | 'oldest'>('newest'); // Sorting order for logs
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [logSortOrder, setLogSortOrder] = useState<'newest' | 'oldest'>('newest');
 
     const { uuid } = ServerContext.useStoreState((state) => state.server.data!);
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -64,16 +71,10 @@ const LogsPage: React.FC = () => {
     const clearFlashes = useStoreActions((actions: Actions<ApplicationStore>) => actions.flashes.clearFlashes);
     const addError = useStoreActions((actions: Actions<ApplicationStore>) => actions.flashes.addError);
 
-    // Apply sorting to logs
+    // Note: this sorts by filename (lexicographic), not file timestamps.
     const sortedLogs = React.useMemo(() => {
-        let sorted = [...logs];
-        // Example sorting: If 'newest', we reverse the alphabetical order:
-        // Adjust this logic if you have a better date-based pattern.
-        sorted.sort();
-        if (logSortOrder === 'newest') {
-            sorted.reverse();
-        }
-        return sorted;
+        const sorted = [...logs].sort();
+        return logSortOrder === 'newest' ? sorted.reverse() : sorted;
     }, [logs, logSortOrder]);
 
     const paginatedLogs = sortedLogs.slice((currentLogsPage - 1) * logsPerPage, currentLogsPage * logsPerPage);
@@ -92,8 +93,8 @@ const LogsPage: React.FC = () => {
 
     const handleLogsPerPageChange = (newPerPage: number) => {
         setLogsPerPage(newPerPage);
-        setCurrentLogsPage(1); // Reset to first page when changing page size
-        setCurrentHistoryPage(1); // Reset history page too
+        setCurrentLogsPage(1);
+        setCurrentHistoryPage(1);
     };
 
     const saveToLocalStorage = (data: McLogEntry) => {
@@ -145,8 +146,8 @@ const LogsPage: React.FC = () => {
         try {
             let logData: string;
 
+            // For `.gz` logs we decompress server-side first, then read the temporary plain-text file.
             if (fileName.endsWith('.gz')) {
-                // Decompress the file using the API
                 const decompressResponse = await axios.post(
                     `/api/client/servers/${uuid}/files/decompress`,
                     { root: '/logs', file: fileName },
@@ -156,7 +157,6 @@ const LogsPage: React.FC = () => {
                 if (decompressResponse.status === 204) {
                     const decompressedFileName = fileName.replace('.gz', '');
 
-                    // Fetch the decompressed file content
                     const fileContentResponse = await axios.get(
                         `/api/client/servers/${uuid}/files/contents?file=/logs/${decompressedFileName}`,
                         { headers: { 'X-CSRF-TOKEN': csrfToken ?? '' } }
@@ -164,7 +164,7 @@ const LogsPage: React.FC = () => {
 
                     logData = fileContentResponse.data;
 
-                    // Optionally, delete the decompressed file after use
+                    // Avoid leaving a decompressed copy behind on disk.
                     await axios.post(
                         `/api/client/servers/${uuid}/files/delete`,
                         { root: '/logs', files: [decompressedFileName] },
@@ -174,7 +174,6 @@ const LogsPage: React.FC = () => {
                     throw new Error('Failed to decompress the file.');
                 }
             } else {
-                // Fetch the raw file content if it's not compressed
                 const fileContentResponse = await axios.get(
                     `/api/client/servers/${uuid}/files/contents?file=/logs/${fileName}`,
                     { headers: { 'X-CSRF-TOKEN': csrfToken ?? '' } }
@@ -183,8 +182,8 @@ const LogsPage: React.FC = () => {
                 logData = fileContentResponse.data;
             }
 
-            // Upload the log data to MCLogs
             const formData = new URLSearchParams();
+            // Prefix the paste with the filename so the mclo.gs page has context.
             formData.append('content', `// Log file: ${fileName}\n\n${logData}`);
 
             const uploadResponse = await axios.post('https://api.mclo.gs/1/log', formData, {
@@ -252,13 +251,11 @@ const LogsPage: React.FC = () => {
         }
     };
 
-    // Load from local storage and fetch logs on mount
     useEffect(() => {
         fetchLogs();
         loadFromLocalStorage();
     }, []);
 
-    // Re-sort mclogsUrls when sortOrder changes
     useEffect(() => {
         setMclogsUrls((prev) => {
             const sorted = [...prev].sort((a, b) => {
@@ -423,7 +420,6 @@ const LogsPage: React.FC = () => {
                                     <option value={15}>15 per page</option>
                                     <option value={20}>20 per page</option>
                                 </select>
-                                {/* Sort Order Dropdown */}
                                 <select
                                     css={tw`text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600`}
                                     value={sortOrder}
@@ -558,17 +554,15 @@ const LogsPage: React.FC = () => {
                         </button>
                     </div>
                     <h4 css={tw`text-base text-white mb-2`}>Raw Log</h4>
-                    {/* added by BZ: Toggle for grouped/collapsibled */}
                     <button
                         css={tw`mb-4 px-2 py-1 rounded bg-neutral-800 text-neutral-200 text-xs hover:bg-neutral-700`}
-                        onClick={() => setShowOriginal(v => !v)}
+                        onClick={() => setShowOriginal((v) => !v)}
                         type="button"
                     >
                         {showOriginal ? 'Show Grouped/Collapsible View' : 'Show Original Log Order'}
                     </button>
                     <div css={tw`text-sm whitespace-pre-wrap mb-4`}>
                         {showOriginal ? (
-                            // Original log order, color-coded only
                             selectedLogData.split('\n').map((line, index) => {
                                 let lineStyle = tw`text-white`;
                                 if (line.includes('WARN')) lineStyle = tw`text-[#FF8C00]`;
@@ -579,7 +573,6 @@ const LogsPage: React.FC = () => {
                                 );
                             })
                         ) : (
-                            // Grouped/collapsibled view
                             (() => {
                                 const grouped: Record<LogSection, string[]> = {
                                     ERROR: [],
@@ -587,6 +580,8 @@ const LogsPage: React.FC = () => {
                                     INFO: [],
                                     OTHER: [],
                                 };
+
+                                // Best-effort grouping based on substring matches (not a structured parser).
                                 selectedLogData.split('\n').forEach(line => {
                                     if (line.includes('ERROR')) grouped.ERROR.push(line);
                                     else if (line.includes('WARN')) grouped.WARN.push(line);

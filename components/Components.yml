@@ -1,3 +1,7 @@
+## Blueprint component slot map.
+## Values are component names (TSX files in `components/` without extension) or route injection entries.
+## This addon adds a server route at `/mclogs` that renders `LogsPage`.
+
 Navigation:
   NavigationBar: 
     BeforeNavigation: ""
@@ -12,8 +16,8 @@ Navigation:
     - { Name: "MC Logs", Path: "/mclogs", Type: "server", Component: "LogsPage", AdminOnly: "false" }
 
 Dashboard:
-  BeforeContent: "" # beta-2024-08 and later
-  AfterContent: "" # beta-2024-08 and later
+  BeforeContent: ""
+  AfterContent: ""
   ServerRow:
     BeforeEntryName: ""
     AfterEntryName: ""

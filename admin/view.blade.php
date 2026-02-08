@@ -1,4 +1,5 @@
-<!-- Version and Information Box (Full Width) -->
+{{-- Blueprint admin view for the addon.
+     `{name}`, `{author}`, and `{identifier}` are placeholders populated by Blueprint from `conf.yml`. --}}
 <div class="row">
     <div class="col-xs-12">
         <div class="box box-primary">
