@@ -31,10 +31,10 @@ data:
 
 requests:
   views: ''
-  controllers: ''
+  controllers: 'client'
   routers:
     application: ''
-    client: ''
+    client: 'routes/client.php'
     web: ''
 
 database:

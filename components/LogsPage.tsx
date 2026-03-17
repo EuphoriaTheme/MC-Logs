@@ -34,10 +34,12 @@ interface InsightsData {
  * Blueprint server route page for the MC Logs addon.
  *
  * - Lists `/logs` using the Pterodactyl client API.
- * - Uploads selected logs to mclo.gs and stores returned ids/urls in browser localStorage.
- * - Fetches and renders mclo.gs `raw` and `insights` data for a selected upload.
+ * - Uploads selected logs to mclo.gs and stores upload history in the database via API.
+ * - Fetches and renders mclo.gs `raw` + `insights` data for a selected upload.
  *
- * Privacy: uploading sends the full log contents to a third-party service.
+ * Storage: Upload history is now persisted to the database via API endpoints instead of browser localStorage.
+ *
+ * Privacy: uploading sends the full log contents to a third-party service (mclo.gs).
  */
 const LogsPage: React.FC = () => {
   const [collapsed, setCollapsed] = useState<Record<LogSection, boolean>>({
@@ -96,28 +98,86 @@ const LogsPage: React.FC = () => {
     setCurrentHistoryPage(1);
   };
 
-  const saveToLocalStorage = (data: McLogEntry) => {
-    const storedData = JSON.parse(localStorage.getItem(`${uuid}_mclogs`) || '[]');
-    storedData.push(data);
-    localStorage.setItem(`${uuid}_mclogs`, JSON.stringify(storedData));
+  /**
+   * Save a new upload record to the database via API.
+   */
+  const saveToDatabase = async (data: McLogEntry) => {
+    try {
+      await axios.post(
+        `/api/client/servers/${uuid}/mclogs`,
+        {
+          mclogs_id: data.id,
+          mclogs_url: data.url,
+        },
+        {
+          headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
+        },
+      );
+    } catch (error) {
+      console.error('Error saving to database:', error);
+      addError({ key: 'logs', message: 'Failed to save upload history. Changes may not persist.' });
+    }
   };
 
-  const loadFromLocalStorage = () => {
-    const storedData: McLogEntry[] = JSON.parse(localStorage.getItem(`${uuid}_mclogs`) || '[]');
-    setMclogsUrls(storedData);
+  /**
+   * Load all upload records from the database via API.
+   */
+  const loadFromDatabase = async () => {
+    try {
+      const response = await axios.get(`/api/client/servers/${uuid}/mclogs`, {
+        headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
+      });
+
+      if (response.data.data) {
+        const uploads: McLogEntry[] = response.data.data.map((item: any) => ({
+          id: item.id,
+          url: item.url,
+          uploadedAt: item.uploadedAt,
+        }));
+        setMclogsUrls(uploads);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 422)) {
+        setMclogsUrls([]);
+        return;
+      }
+
+      console.error('Error loading from database:', error);
+      addError({ key: 'logs', message: 'Failed to load upload history.' });
+    }
   };
 
-  const removeFromLocalStorage = (id: string) => {
-    const storedData: McLogEntry[] = JSON.parse(localStorage.getItem(`${uuid}_mclogs`) || '[]');
-    const updatedData = storedData.filter((entry) => entry.id !== id);
-    localStorage.setItem(`${uuid}_mclogs`, JSON.stringify(updatedData));
-    setMclogsUrls(updatedData);
+  /**
+   * Delete a specific upload record from the database via API.
+   */
+  const removeFromDatabase = async (id: string) => {
+    try {
+      await axios.delete(`/api/client/servers/${uuid}/mclogs/${id}`, {
+        headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
+      });
+
+      setMclogsUrls((prev) => prev.filter((entry) => entry.id !== id));
+    } catch (error) {
+      console.error('Error deleting from database:', error);
+      addError({ key: 'logs', message: 'Failed to delete upload. Please try again.' });
+    }
   };
 
-  const clearAllLogs = () => {
-    localStorage.removeItem(`${uuid}_mclogs`);
-    setMclogsUrls([]);
-    setShowModal(false);
+  /**
+   * Clear all upload records for this server from the database via API.
+   */
+  const clearAllLogs = async () => {
+    try {
+      await axios.delete(`/api/client/servers/${uuid}/mclogs`, {
+        headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
+      });
+
+      setMclogsUrls([]);
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error clearing all uploads:', error);
+      addError({ key: 'logs', message: 'Failed to clear history. Please try again.' });
+    }
   };
 
   const fetchLogs = async () => {
@@ -131,6 +191,11 @@ const LogsPage: React.FC = () => {
       const files = response.data.data.map((file: { attributes: { name: string } }) => file.attributes.name);
       setLogs(files);
     } catch (error) {
+      if (axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 422)) {
+        setLogs([]);
+        return;
+      }
+
       console.error('Error fetching logs:', error);
       addError({ key: 'logs', message: 'Failed to fetch logs. Please try again later.' });
     } finally {
@@ -196,7 +261,7 @@ const LogsPage: React.FC = () => {
           uploadedAt: new Date().toISOString(),
         };
         setMclogsUrls((prev) => [newLog, ...prev]);
-        saveToLocalStorage(newLog);
+        await saveToDatabase(newLog);
 
         await fetchMclogsData(uploadResponse.data.id);
       } else {
@@ -252,7 +317,7 @@ const LogsPage: React.FC = () => {
 
   useEffect(() => {
     fetchLogs();
-    loadFromLocalStorage();
+    loadFromDatabase();
   }, []);
 
   useEffect(() => {
@@ -459,7 +524,7 @@ const LogsPage: React.FC = () => {
                         </button>
                         <button
                           css={tw`text-sm bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600`}
-                          onClick={() => removeFromLocalStorage(id)}
+                          onClick={() => removeFromDatabase(id)}
                         >
                           <i className='fa-solid fa-trash'></i>
                         </button>
