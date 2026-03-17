@@ -3,84 +3,84 @@
 ## This addon adds a server route at `/mclogs` that renders `LogsPage`.
 
 Navigation:
-  NavigationBar: 
-    BeforeNavigation: ""
-    AdditionalItems: ""
-    AfterNavigation: ""
+  NavigationBar:
+    BeforeNavigation: ''
+    AdditionalItems: ''
+    AfterNavigation: ''
   SubNavigation:
-    BeforeSubNavigation: ""
-    AdditionalServerItems: ""
-    AdditionalAccountItems: ""
-    AfterSubNavigation: ""
+    BeforeSubNavigation: ''
+    AdditionalServerItems: ''
+    AdditionalAccountItems: ''
+    AfterSubNavigation: ''
   Routes:
-    - { Name: "MC Logs", Path: "/mclogs", Type: "server", Component: "LogsPage", AdminOnly: "false" }
+    - { Name: 'MC Logs', Path: '/mclogs', Type: 'server', Component: 'LogsPage', AdminOnly: 'false' }
 
 Dashboard:
-  BeforeContent: ""
-  AfterContent: ""
+  BeforeContent: ''
+  AfterContent: ''
   ServerRow:
-    BeforeEntryName: ""
-    AfterEntryName: ""
-    BeforeEntryDescription: ""
-    AfterEntryDescription: ""
-    ResourceLimits: ""
+    BeforeEntryName: ''
+    AfterEntryName: ''
+    BeforeEntryDescription: ''
+    AfterEntryDescription: ''
+    ResourceLimits: ''
 
 Authentication:
   Container:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
 
 Account:
   Overview:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   API:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   SSH:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
 
 Server:
   Terminal:
-    BeforeContent: ""
-    AdditionalPowerButtons: ""
-    BeforeInformation: ""
-    AfterInformation: ""
-    CommandRow: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AdditionalPowerButtons: ''
+    BeforeInformation: ''
+    AfterInformation: ''
+    CommandRow: ''
+    AfterContent: ''
   Files:
     Browse:
-      BeforeContent: ""
-      FileButtons: ""
-      DropdownItems: ""
-      AfterContent: ""
+      BeforeContent: ''
+      FileButtons: ''
+      DropdownItems: ''
+      AfterContent: ''
     Edit:
-      BeforeEdit: ""
-      AfterEdit: ""
+      BeforeEdit: ''
+      AfterEdit: ''
   Databases:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   Schedules:
     List:
-      BeforeContent: ""
-      AfterContent: ""
+      BeforeContent: ''
+      AfterContent: ''
     Edit:
-      BeforeEdit: ""
-      AfterEdit: ""
+      BeforeEdit: ''
+      AfterEdit: ''
   Users:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   Backups:
-    BeforeContent: ""
-    DropdownItems: ""
-    AfterContent: ""
+    BeforeContent: ''
+    DropdownItems: ''
+    AfterContent: ''
   Network:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   Startup:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
   Settings:
-    BeforeContent: ""
-    AfterContent: ""
+    BeforeContent: ''
+    AfterContent: ''
