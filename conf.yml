@@ -31,7 +31,7 @@ data:
 
 requests:
   views: ''
-  controllers: 'client'
+  controllers: 'controllers'
   routers:
     application: ''
     client: 'routes/client.php'
