@@ -1,6 +1,6 @@
 <?php
 
-namespace Blueprint\Extensions\Mclogs\client;
+namespace Blueprint\Extensions\Mclogs\controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +16,8 @@ use Illuminate\Support\Str;
  */
 class MclogsController extends Controller
 {
-    protected string $table = 'mclogs_uploads';
+    protected string $settingsTable = 'mclogs_settings';
+    protected string $uploadsTable  = 'mclogs_uploads';
 
     /**
      * Get all log uploads for a specific server.
@@ -32,7 +33,7 @@ class MclogsController extends Controller
         // Check if user has permission to view this server
         $this->authorize('view', $server);
 
-        $uploads = DB::table($this->table)
+        $uploads = DB::table($this->uploadsTable)
             ->where('server_id', $server->id)
             ->whereNull('deleted_at')
             ->orderBy('created_at', 'desc')
@@ -73,7 +74,7 @@ class MclogsController extends Controller
         $this->authorize('view', $server);
 
         // Check if this mclogs_id already exists (prevent duplicates)
-        $existing = DB::table($this->table)
+        $existing = DB::table($this->uploadsTable)
             ->where('server_id', $server->id)
             ->where('mclogs_id', $request->mclogs_id)
             ->whereNull('deleted_at')
@@ -95,7 +96,7 @@ class MclogsController extends Controller
         $now = now();
 
         // Insert the record directly using query builder
-        DB::table($this->table)->insert([
+        DB::table($this->uploadsTable)->insert([
             'id' => $recordId,
             'server_id' => $server->id,
             'user_id' => auth()->id(),
@@ -111,7 +112,7 @@ class MclogsController extends Controller
         $settings   = DB::table('mclogs_settings')->first();
         $maxEntries = $settings ? (int) $settings->max_entries : 50;
 
-        $keepIds = DB::table($this->table)
+        $keepIds = DB::table($this->uploadsTable)
             ->where('server_id', $server->id)
             ->whereNull('deleted_at')
             ->orderBy('created_at', 'desc')
@@ -119,7 +120,7 @@ class MclogsController extends Controller
             ->pluck('id');
 
         if ($keepIds->isNotEmpty()) {
-            DB::table($this->table)
+            DB::table($this->uploadsTable)
                 ->where('server_id', $server->id)
                 ->whereNull('deleted_at')
                 ->whereNotIn('id', $keepIds)
@@ -151,7 +152,7 @@ class MclogsController extends Controller
         // Check if user has permission to access this server
         $this->authorize('view', $server);
 
-        $upload = DB::table($this->table)
+        $upload = DB::table($this->uploadsTable)
             ->where('server_id', $server->id)
             ->where('mclogs_id', $mclogs_id)
             ->whereNull('deleted_at')
@@ -162,7 +163,7 @@ class MclogsController extends Controller
         }
 
         // Soft delete by setting deleted_at
-        DB::table($this->table)
+        DB::table($this->uploadsTable)
             ->where('id', $upload->id)
             ->update(['deleted_at' => now()]);
 
@@ -183,11 +184,72 @@ class MclogsController extends Controller
         // Check if user has permission to access this server
         $this->authorize('view', $server);
 
-        DB::table($this->table)
+        DB::table($this->uploadsTable)
             ->where('server_id', $server->id)
             ->whereNull('deleted_at')
             ->update(['deleted_at' => now()]);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Update MC Logs settings.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateSettings(Request $request)
+    {
+        // Guard: only root admins may change settings.
+        if (!auth()->user()?->root_admin) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'max_entries' => 'required|integer|min:1|max:10000',
+        ]);
+
+        $maxEntries    = (int) $validated['max_entries'];
+
+        // Upsert the single settings row.
+        $existing = DB::table($this->settingsTable)->first();
+
+        if ($existing) {
+            DB::table($this->settingsTable)->update([
+                'max_entries' => $maxEntries,
+                'updated_at'  => now(),
+            ]);
+        } else {
+            DB::table($this->settingsTable)->insert([
+                'max_entries' => $maxEntries,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        }
+
+        // Prune excess records for every server immediately.
+        $serverIds = DB::table($this->uploadsTable)
+            ->whereNull('deleted_at')
+            ->distinct()
+            ->pluck('server_id');
+
+        foreach ($serverIds as $serverId) {
+            $keepIds = DB::table($this->uploadsTable)
+                ->where('server_id', $serverId)
+                ->whereNull('deleted_at')
+                ->orderBy('created_at', 'desc')
+                ->limit($maxEntries)
+                ->pluck('id');
+
+            if ($keepIds->isNotEmpty()) {
+                DB::table($this->uploadsTable)
+                    ->where('server_id', $serverId)
+                    ->whereNull('deleted_at')
+                    ->whereNotIn('id', $keepIds)
+                    ->update(['deleted_at' => now()]);
+            }
+        }
+
+        return redirect('/admin/extensions/mclogs')->with('success', 'MC Logs settings saved successfully.');        
     }
 }
