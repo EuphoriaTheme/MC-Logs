@@ -15,7 +15,7 @@ info:
 
 admin:
   view: 'admin/view.blade.php'
-  controller: 'admin/MclogsSettingsController.php'
+  controller: ''
   css: ''
   wrapper: ''
 

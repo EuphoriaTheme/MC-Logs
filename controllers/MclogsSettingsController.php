@@ -1,6 +1,6 @@
 <?php
 
-namespace Blueprint\Extensions\Mclogs\admin;
+namespace Blueprint\Extensions\Mclogs\controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
