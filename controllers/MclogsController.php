@@ -106,6 +106,26 @@ class MclogsController extends Controller
             'updated_at' => $now,
         ]);
 
+        // Enforce the admin-configured max_entries limit for this server.
+        // Soft-delete any records that exceed the cap, keeping the newest ones.
+        $settings   = DB::table('mclogs_settings')->first();
+        $maxEntries = $settings ? (int) $settings->max_entries : 50;
+
+        $keepIds = DB::table($this->table)
+            ->where('server_id', $server->id)
+            ->whereNull('deleted_at')
+            ->orderBy('created_at', 'desc')
+            ->limit($maxEntries)
+            ->pluck('id');
+
+        if ($keepIds->isNotEmpty()) {
+            DB::table($this->table)
+                ->where('server_id', $server->id)
+                ->whereNull('deleted_at')
+                ->whereNotIn('id', $keepIds)
+                ->update(['deleted_at' => $now]);
+        }
+
         return response()->json([
             'data' => [
                 'id' => $request->mclogs_id,
