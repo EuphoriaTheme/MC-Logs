@@ -27,6 +27,11 @@ class MclogsSettingsController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        // Pterodactyl does not register an 'admin' middleware alias — guard manually.
+        if (!auth()->user()?->root_admin) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'max_entries' => 'required|integer|min:1|max:10000',
         ]);

@@ -62,7 +62,7 @@
                             max="10000"
                             required
                         >
-                        <p class="help-block">
+                        <p class="help-block" style="color: #fff;">
                             Maximum number of MC Logs upload records stored per server.
                             When a new upload exceeds this limit the oldest record is automatically removed.
                             Saving a lower value here will also immediately prune any existing records that exceed it.
