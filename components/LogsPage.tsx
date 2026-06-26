@@ -191,7 +191,9 @@ const LogsPage: React.FC = () => {
       const files = response.data.data.map((file: { attributes: { name: string } }) => file.attributes.name);
       setLogs(files);
     } catch (error) {
-      if (axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 422)) {
+      // Any HTTP error (directory not found, server not started, daemon unavailable, etc.)
+      // just means no logs are available yet — don't alarm the user.
+      if (axios.isAxiosError(error) && error.response) {
         setLogs([]);
         return;
       }

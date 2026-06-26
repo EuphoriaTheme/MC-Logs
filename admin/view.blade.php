@@ -5,6 +5,7 @@
     $settings    = \Illuminate\Support\Facades\DB::table('mclogs_settings')->first();
     $maxEntries  = $settings?->max_entries ?? 50;
     $totalStored = \Illuminate\Support\Facades\DB::table('mclogs_uploads')->whereNull('deleted_at')->count();
+    $totalAll    = \Illuminate\Support\Facades\DB::table('mclogs_uploads')->count();
 @endphp
 
 <div class="row">
@@ -19,6 +20,30 @@
                 Uninstall using: <code>blueprint -remove {identifier}</code><br>
                 Get support via <a href="https://discord.gg/Cus2zP4pPH" target="_blank" rel="noopener noreferrer">Discord</a>
             </div>
+        </div>
+    </div>
+
+    {{-- Danger zone card --}}
+    <div class="col-xs-12 col-sm-8 col-md-6">
+        <div class="box box-danger">
+            <div class="box-header with-border">
+                <h3 class="box-title">Danger Zone</h3>
+            </div>
+
+            <form method="POST" action="/admin/extensions/mclogs" onsubmit="return confirm('Are you sure? This will permanently delete ALL {{ number_format($totalAll) }} upload record(s) from the database. This cannot be undone.');">
+                @csrf
+                @method('PUT')
+
+                <div class="box-body">
+                    <p>Permanently delete <strong>all {{ number_format($totalAll) }} upload record(s)</strong> from the database across every server (including soft-deleted history). This cannot be undone.</p>
+                </div>
+
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa fa-trash"></i>&nbsp; Prune All Upload History
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

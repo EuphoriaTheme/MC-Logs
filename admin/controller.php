@@ -64,4 +64,15 @@ class mclogsExtensionController extends Controller
 
         return redirect('/admin/extensions/mclogs')->with('success', 'MC Logs settings saved successfully.');
     }
+
+    public function put(Request $request)
+    {
+        if (!auth()->user()?->root_admin) {
+            abort(403);
+        }
+
+        DB::statement('TRUNCATE TABLE mclogs_uploads');
+
+        return redirect('/admin/extensions/mclogs')->with('success', 'All MC Logs upload records have been permanently deleted from the database.');
+    }
 }
