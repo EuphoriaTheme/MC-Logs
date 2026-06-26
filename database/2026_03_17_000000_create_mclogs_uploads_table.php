@@ -10,6 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        if (Schema::hasTable('mclogs_uploads')) {
+            return;
+        }
+
         Schema::create('mclogs_uploads', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->unsignedBigInteger('server_id');

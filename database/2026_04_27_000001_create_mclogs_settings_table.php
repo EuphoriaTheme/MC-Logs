@@ -15,18 +15,22 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('mclogs_settings', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('max_entries')->default(50);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('mclogs_settings')) {
+            Schema::create('mclogs_settings', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedInteger('max_entries')->default(50);
+                $table->timestamps();
+            });
+        }
 
-        // Seed the one and only settings row.
-        DB::table('mclogs_settings')->insert([
-            'max_entries' => 50,
-            'created_at'  => now(),
-            'updated_at'  => now(),
-        ]);
+        // Seed the one and only settings row if it doesn't exist yet.
+        if (DB::table('mclogs_settings')->doesntExist()) {
+            DB::table('mclogs_settings')->insert([
+                'max_entries' => 50,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        }
     }
 
     /**

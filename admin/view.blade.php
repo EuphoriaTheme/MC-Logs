@@ -29,7 +29,7 @@
                 <h3 class="box-title">Storage Settings</h3>
             </div>
 
-            <form method="POST" action="/admin/extensions/mclogs/settings">
+            <form method="POST" action="/admin/extensions/mclogs">
                 @csrf
 
                 <div class="box-body">
