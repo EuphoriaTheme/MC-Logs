@@ -104,7 +104,7 @@ const LogsPage: React.FC = () => {
   const saveToDatabase = async (data: McLogEntry) => {
     try {
       await axios.post(
-        `/api/client/servers/${uuid}/mclogs`,
+        `/api/client/extensions/mclogs/${uuid}/mclogs`,
         {
           mclogs_id: data.id,
           mclogs_url: data.url,
@@ -124,7 +124,7 @@ const LogsPage: React.FC = () => {
    */
   const loadFromDatabase = async () => {
     try {
-      const response = await axios.get(`/api/client/servers/${uuid}/mclogs`, {
+      const response = await axios.get(`/api/client/extensions/mclogs/${uuid}/mclogs`, {
         headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
       });
 
@@ -152,7 +152,7 @@ const LogsPage: React.FC = () => {
    */
   const removeFromDatabase = async (id: string) => {
     try {
-      await axios.delete(`/api/client/servers/${uuid}/mclogs/${id}`, {
+      await axios.delete(`/api/client/extensions/mclogs/${uuid}/mclogs/${id}`, {
         headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
       });
 
@@ -168,7 +168,7 @@ const LogsPage: React.FC = () => {
    */
   const clearAllLogs = async () => {
     try {
-      await axios.delete(`/api/client/servers/${uuid}/mclogs`, {
+      await axios.delete(`/api/client/extensions/mclogs/${uuid}/mclogs`, {
         headers: { 'X-CSRF-TOKEN': csrfToken ?? '' },
       });
 
@@ -191,7 +191,9 @@ const LogsPage: React.FC = () => {
       const files = response.data.data.map((file: { attributes: { name: string } }) => file.attributes.name);
       setLogs(files);
     } catch (error) {
-      if (axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 422)) {
+      // Any HTTP error (directory not found, server not started, daemon unavailable, etc.)
+      // just means no logs are available yet — don't alarm the user.
+      if (axios.isAxiosError(error) && error.response) {
         setLogs([]);
         return;
       }

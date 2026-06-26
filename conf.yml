@@ -8,14 +8,14 @@ info:
   description: 'Addon that allows users to Utilise the MCLOGS API'
   flags: ''
   version: '1.6'
-  target: 'beta-2026-01'
+  target: 'beta-2026-06'
   author: 'Euphoria Development'
   icon: 'mclogs_icon.jpg'
   website: 'https://euphoriadevelopment.uk'
 
 admin:
   view: 'admin/view.blade.php'
-  controller: ''
+  controller: 'admin/controller.php'
   css: ''
   wrapper: ''
 
